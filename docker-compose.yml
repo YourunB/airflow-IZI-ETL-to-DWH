@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres_source1:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: pass1
+      POSTGRES_DB: source1
+    volumes:
+      - ./init-data:/docker-entrypoint-initdb.d
+    ports:
+      - "5434:5432"
+
+  postgres_source2:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: user2
+      POSTGRES_PASSWORD: pass2
+      POSTGRES_DB: source2
+    volumes:
+      - ./init-data/source2.sql:/docker-entrypoint-initdb.d/source2.sql
+    ports:
+      - "5435:5432"
+
+  postgres_dwh:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: dwhuser
+      POSTGRES_PASSWORD: dwhpass
+      POSTGRES_DB: dwh
+    volumes:
+      - ./init-data/dwh.sql:/docker-entrypoint-initdb.d/dwh.sql
+    ports:
+      - "5436:5432"
+
+  airflow:
+    image: apache/airflow:latest
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./init-data/dwh.sql:/docker-entrypoint-initdb.d/dwh.sql
+      - ./init_airflow_connections.sh:/init_airflow_connections.sh 
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "airflow db migrate &&
+      /init_airflow_connections.sh &&
+      exec airflow standalone"
+
+
+
