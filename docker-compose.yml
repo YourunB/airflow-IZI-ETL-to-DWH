@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: pass1
       POSTGRES_DB: source1
     volumes:
-      - ./init-data:/docker-entrypoint-initdb.d
+      - ./init-data/00-create-izi.sql:/docker-entrypoint-initdb.d/00-create-izi.sql
     ports:
       - "5434:5432"
 
@@ -19,7 +19,7 @@ services:
       POSTGRES_PASSWORD: pass2
       POSTGRES_DB: source2
     volumes:
-      - ./init-data/source2.sql:/docker-entrypoint-initdb.d/source2.sql
+      - ./init-data/00-create-izi.sql:/docker-entrypoint-initdb.d/00-create-izi.sql
     ports:
       - "5435:5432"
 
