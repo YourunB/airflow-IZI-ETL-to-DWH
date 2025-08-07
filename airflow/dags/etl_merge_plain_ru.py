@@ -14,9 +14,9 @@ import pandas as pd
 def etl_vpayment_sales_merge_en():
     @task
     def merge_and_insert():
-        pg1 = PostgresHook(postgres_conn_id='pg_source1')
-        pg2 = PostgresHook(postgres_conn_id='pg_source2')
-        dwh = PostgresHook(postgres_conn_id='pg_dwh-en')
+        pg1 = PostgresHook(postgres_conn_id='pg_source2')
+        pg2 = PostgresHook(postgres_conn_id='pg_source3')
+        dwh = PostgresHook(postgres_conn_id='pg_dwh-ru')
 
         # Получаем данные
         v_payment_df = pd.DataFrame(pg1.get_records("""
