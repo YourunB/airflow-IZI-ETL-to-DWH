@@ -23,16 +23,49 @@ services:
     ports:
       - "5435:5432"
 
-  postgres_dwh:
+  postgres_source3:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_USER: dwhuser
-      POSTGRES_PASSWORD: dwhpass
-      POSTGRES_DB: dwh
+      POSTGRES_USER: user3
+      POSTGRES_PASSWORD: pass3
+      POSTGRES_DB: source3
     volumes:
-      - ./init-data/dwh.sql:/docker-entrypoint-initdb.d/dwh.sql
+      - ./init-data/00-create-izi.sql:/docker-entrypoint-initdb.d/00-create-izi.sql
     ports:
       - "5436:5432"
+
+  postgres_source4:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: user4
+      POSTGRES_PASSWORD: pass4
+      POSTGRES_DB: source4
+    volumes:
+      - ./init-data/00-create-izi.sql:/docker-entrypoint-initdb.d/00-create-izi.sql
+    ports:
+      - "5437:5432"
+
+  postgres_dwh-en:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: dwhuser-en
+      POSTGRES_PASSWORD: dwhpass-en
+      POSTGRES_DB: dwh-en
+    volumes:
+      - ./init-data/dwh-en.sql:/docker-entrypoint-initdb.d/dwh-en.sql
+    ports:
+      - "5438:5432"
+
+  postgres_dwh-ru:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: dwhuser-ru
+      POSTGRES_PASSWORD: dwhpass-ru
+      POSTGRES_DB: dwh-ru
+    volumes:
+      - ./init-data/dwh-ru.sql:/docker-entrypoint-initdb.d/dwh-ru.sql
+    ports:
+      - "5439:5432"
 
   airflow:
     image: apache/airflow:latest
@@ -41,7 +74,8 @@ services:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./init-data/dwh.sql:/docker-entrypoint-initdb.d/dwh.sql
+      - ./init-data/dwh-en.sql:/docker-entrypoint-initdb.d/dwh-en.sql
+      - ./init-data/dwh-ru.sql:/docker-entrypoint-initdb.d/dwh-ru.sql
       - ./init_airflow_connections.sh:/init_airflow_connections.sh 
     ports:
       - "8080:8080"

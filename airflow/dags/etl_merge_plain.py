@@ -14,7 +14,7 @@ def etl_payment_sales_merge():
     def etl_merge():
         pg1 = PostgresHook(postgres_conn_id='pg_source1')
         pg2 = PostgresHook(postgres_conn_id='pg_source2')
-        dwh = PostgresHook(postgres_conn_id='pg_dwh')
+        dwh = PostgresHook(postgres_conn_id='pg_dwh-en')
 
         payments = pg1.get_records("""
             SELECT
