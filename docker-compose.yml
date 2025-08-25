@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  postgres_source1:
+  postgres_source1: # тут Main UAE db
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user1
@@ -12,7 +12,7 @@ services:
     ports:
       - "5434:5432"
 
-  postgres_source2:
+  postgres_source2: # тут Shop UAE db
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user2
@@ -23,7 +23,7 @@ services:
     ports:
       - "5435:5432"
 
-  postgres_source3:
+  postgres_source3: # тут Main RU db
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user3
@@ -34,7 +34,7 @@ services:
     ports:
       - "5436:5432"
 
-  postgres_source4:
+  postgres_source4: # тут Shop UAE db
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user4
@@ -45,7 +45,7 @@ services:
     ports:
       - "5437:5432"
 
-  postgres_dwh-en:
+  postgres_dwh-en: # тут итог UAE Main + Shop
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: dwhuser-en
@@ -56,7 +56,7 @@ services:
     ports:
       - "5438:5432"
 
-  postgres_dwh-ru:
+  postgres_dwh-ru: # тут итог RU Main + Shop
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: dwhuser-ru
