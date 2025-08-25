@@ -68,7 +68,9 @@ services:
       - "5439:5432"
 
   airflow:
-    image: apache/airflow:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
