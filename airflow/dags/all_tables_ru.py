@@ -1,214 +1,113 @@
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from pendulum import datetime
-import pandas as pd
-import json
+import os
+import tempfile
 
-# Служебные схемы/таблицы, которые копировать не нужно
-EXCLUDE_SCHEMAS = {"pg_catalog", "information_schema", "tiger", "topology"}
-EXCLUDE_TABLES = {("public", "spatial_ref_sys")}
+# Таблицы, которые нужно исключить (системные PostGIS)
+EXCLUDE_SCHEMAS = {"tiger", "topology"}
+EXCLUDE_TABLES = {
+    ("public", "spatial_ref_sys"),  # тоже системная
+}
 
 @dag(
-    dag_id="etl_full_copy_all_databases_ru",
+    dag_id="etl_copy_everything_safe_ru",
     start_date=datetime(2024, 1, 1),
     schedule="@hourly",
     catchup=False,
+    max_active_runs=1,
     tags=["etl", "postgres", "replication", "full_copy"],
 )
-def etl_full_copy_all_databases_ru():
+def etl_copy_everything_safe_ru():
 
     def get_all_tables(conn_id: str):
+        """Берём все таблицы"""
         hook = PostgresHook(postgres_conn_id=conn_id)
         sql = """
-            SELECT table_schema, table_name
-            FROM information_schema.tables
-            WHERE table_type = 'BASE TABLE'
-              AND table_schema NOT IN ('pg_catalog','information_schema','tiger','topology');
+            SELECT n.nspname as schema, c.relname as table
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relkind = 'r'
+              AND n.nspname NOT IN ('pg_catalog','information_schema');
         """
         return hook.get_records(sql)
 
-    def get_table_columns_with_types(conn_id: str, schema: str, table: str):
-        """
-        Возвращает описание колонок с info о типах (включая массивы и user-defined).
-        """
+    def get_table_columns(conn_id: str, schema: str, table: str):
         hook = PostgresHook(postgres_conn_id=conn_id)
         sql = """
-            SELECT
-                a.attname AS column_name,
-                format_type(a.atttypid, a.atttypmod) AS display_type,
-                tn.nspname AS type_schema,
-                t.typtype AS typtype,               -- b/e/d/c/p/r
-                (t.typelem <> 0) AS is_array,
-                etn.nspname AS elem_type_schema,
-                et.typtype AS elem_typtype
+            SELECT a.attname, format_type(a.atttypid, a.atttypmod)
             FROM pg_attribute a
             JOIN pg_class c ON a.attrelid = c.oid
             JOIN pg_namespace n ON c.relnamespace = n.oid
-            JOIN pg_type t ON a.atttypid = t.oid
-            JOIN pg_namespace tn ON t.typnamespace = tn.oid
-            LEFT JOIN pg_type et ON t.typelem = et.oid
-            LEFT JOIN pg_namespace etn ON et.typnamespace = etn.oid
             WHERE n.nspname = %s
               AND c.relname = %s
               AND a.attnum > 0
               AND NOT a.attisdropped
             ORDER BY a.attnum;
         """
-        rows = hook.get_records(sql, parameters=(schema, table))
-        cols = []
-        for (col, display_type, type_schema, typtype, is_array, elem_type_schema, elem_typtype) in rows:
-            cols.append({
-                "name": col,
-                "display_type": display_type,
-                "type_schema": type_schema,
-                "typtype": typtype,
-                "is_array": bool(is_array),
-                "elem_type_schema": elem_type_schema,
-                "elem_typtype": elem_typtype,
-            })
-        return cols
+        return hook.get_records(sql, parameters=(schema, table))
 
-    def normalize_pg_type(col_info: dict) -> str:
-        """
-        Приводим тип к безопасному для DWH:
-        - базовые типы оставляем;
-        - user-defined/enum/domain/composite/range → text;
-        - массивы с user-defined элементом → text[];
-        - hstore оставляем как hstore (включим EXTENSION).
-        """
-        t = col_info["display_type"]
-        typtype = col_info["typtype"]
-        type_schema = col_info["type_schema"]
-        is_array = col_info["is_array"]
-        elem_typtype = col_info["elem_typtype"]
-        elem_type_schema = col_info["elem_type_schema"]
-
-        if t == "hstore":
-            return "hstore"
-
-        if is_array:
-            if (elem_typtype in ("e", "d", "c", "p", "r")) or (elem_type_schema not in ("pg_catalog", "public")):
-                return "text[]"
-            return t  # например integer[], text[], uuid[] ...
-
-        if (typtype in ("e", "d", "c", "p", "r")) or (type_schema not in ("pg_catalog", "public")):
-            return "text"
-
-        return t
-
-    def convert_row_values(row: list, columns: list) -> list:
-        """
-        Готовим значения для вставки:
-        - None / NaN → None
-        - json/jsonb → json.dumps для dict/list
-        - hstore → оставляем dict (после register_hstore адаптируется)
-        - массивы → оставляем Python list (psycopg2 адаптирует к ARRAY)
-        """
-        out = []
-        for val, col in zip(row, columns):
-            if val is None or (isinstance(val, float) and pd.isna(val)):
-                out.append(None)
-                continue
-
-            t = col["target_type"]
-
-            if t in ("json", "jsonb"):
-                if isinstance(val, (dict, list)):
-                    out.append(json.dumps(val, ensure_ascii=False))
-                else:
-                    out.append(val)
-                continue
-
-            if t == "hstore":
-                # ожидается dict; если строка — не трогаем
-                out.append(val)
-                continue
-
-            if t.endswith("[]"):
-                # если строка с JSON-массивом — постараемся распарсить
-                if isinstance(val, str):
-                    try:
-                        parsed = json.loads(val)
-                        out.append(parsed if isinstance(parsed, list) else [parsed])
-                    except Exception:
-                        # оставим как есть; psycopg2 может не понять строку
-                        out.append([val])
-                else:
-                    out.append(val)
-                continue
-
-            out.append(val)
-        return out
+    def safe_type(pg_type: str) -> str:
+        """Базовые типы оставляем, остальные превращаем в TEXT"""
+        basic = ["integer","bigint","smallint","serial","bigserial",
+                 "numeric","real","double precision",
+                 "text","varchar","character varying",
+                 "date","timestamp","timestamp without time zone",
+                 "timestamp with time zone","boolean","uuid","json","jsonb"]
+        if pg_type in basic:
+            return pg_type
+        return "text"
 
     @task
-    def copy_all_tables(source_conn: str, target_conn: str):
+    def copy_table(source_conn: str, target_conn: str, schema: str, table: str):
+        if schema in EXCLUDE_SCHEMAS or (schema, table) in EXCLUDE_TABLES:
+            print(f"⏭ Пропускаем {schema}.{table} (системная PostGIS таблица)")
+            return
+
         src = PostgresHook(postgres_conn_id=source_conn)
         dwh = PostgresHook(postgres_conn_id=target_conn)
 
-        # Включаем расширения в DWH (важно для hstore)
-        dwh.run("CREATE EXTENSION IF NOT EXISTS hstore;")
-        # На всякий случай: если используешь образ postgis — не помешает
-        dwh.run("CREATE EXTENSION IF NOT EXISTS postgis;")
+        os.makedirs("/tmp/airflow_copy", exist_ok=True)
+        tmpfile = tempfile.NamedTemporaryFile(delete=False, dir="/tmp/airflow_copy")
+        tmp_path = tmpfile.name
+        tmpfile.close()
 
-        # Зарегистрируем адаптер hstore, чтобы dict → hstore
         try:
-            from psycopg2.extras import register_hstore
-            conn = dwh.get_conn()
-            register_hstore(conn, globally=True, unicode=True)
-            conn.close()
-        except Exception as e:
-            print(f"warn: register_hstore failed: {e}")
+            # Выгрузка в CSV
+            with src.get_conn() as conn_src, open(tmp_path, "w", encoding="utf-8") as f:
+                with conn_src.cursor() as cur_src:
+                    cur_src.copy_expert(f'COPY "{schema}"."{table}" TO STDOUT WITH CSV', f)
 
-        tables = get_all_tables(source_conn)
-
-        for schema, table in tables:
-            if schema in EXCLUDE_SCHEMAS or (schema, table) in EXCLUDE_TABLES:
-                print(f"⚠️ Пропускаем служебную таблицу {schema}.{table}")
-                continue
-
-            full_name = f'{schema}.{table}'
-            print(f"=== Копируем {full_name} ===")
-
-            # Данные из источника
-            df = src.get_pandas_df(f'SELECT * FROM "{schema}"."{table}"')
-
-            # Создаём схему в DWH
+            # Создаём схему
             dwh.run(f'CREATE SCHEMA IF NOT EXISTS "{schema}";')
 
-            # Описание колонок и нормализация типов для DWH
-            cols_info = get_table_columns_with_types(source_conn, schema, table)
-            for c in cols_info:
-                c["target_type"] = normalize_pg_type(c)
+            # Создаём таблицу
+            cols = get_table_columns(source_conn, schema, table)
+            cols_def = ", ".join([f'"{c}" {safe_type(t)}' for c, t in cols])
+            dwh.run(f'DROP TABLE IF EXISTS "{schema}"."{table}" CASCADE;')
+            dwh.run(f'CREATE TABLE "{schema}"."{table}" ({cols_def});')
 
-            # Создаём таблицу в DWH при необходимости
-            cols_def = ", ".join([f'"{c["name"]}" {c["target_type"]}' for c in cols_info])
-            dwh.run(f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" ({cols_def});')
+            # Загружаем CSV
+            with dwh.get_conn() as conn_dwh, open(tmp_path, "r", encoding="utf-8") as f:
+                with conn_dwh.cursor() as cur_dwh:
+                    cur_dwh.copy_expert(f'COPY "{schema}"."{table}" FROM STDIN WITH CSV', f)
+                conn_dwh.commit()
 
-            # Если пустая — очистим (на всякий) и дальше
-            if df.empty:
-                print(f"Пропускаем {full_name}, пустая таблица.")
-                dwh.run(f'TRUNCATE TABLE "{schema}"."{table}";')
-                continue
+            print(f"✅ {schema}.{table} скопирована")
 
-            # NaN → None
-            df = df.astype(object).where(pd.notnull(df), None)
+        except Exception as e:
+            raise RuntimeError(f"Ошибка при копировании {schema}.{table}: {e}")
 
-            # Преобразуем строки под типы
-            rows_raw = df.values.tolist()
-            rows = [convert_row_values(r, cols_info) for r in rows_raw]
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
-            # Перезаписываем целиком
-            dwh.run(f'TRUNCATE TABLE "{schema}"."{table}";')
-            dwh.insert_rows(
-                table=f'{schema}.{table}',
-                rows=rows,
-                target_fields=[c["name"] for c in cols_info],
-                commit_every=5000,
+    # ТАСКИ СОЗДАЮТСЯ ПРИ ПОСТРОЕНИИ DAG
+    for source_conn in ["pg_source3", "pg_source4"]:
+        tables = get_all_tables(source_conn)
+        for schema, table in tables:
+            copy_table.override(task_id=f"copy_{source_conn}_{schema}_{table}")(
+                source_conn, "pg_dwh-ru", schema, table
             )
 
-    # Копируем все таблицы из первой и второй базы
-    copy_all_tables("pg_source3", "pg_dwh-ru")
-    copy_all_tables("pg_source4", "pg_dwh-ru")
-
-
-dag = etl_full_copy_all_databases_ru()
+dag = etl_copy_everything_safe_ru()
