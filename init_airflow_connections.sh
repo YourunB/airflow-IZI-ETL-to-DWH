@@ -15,6 +15,7 @@ airflow connections delete 'pg_source2' || true
 airflow connections delete 'pg_source3' || true
 airflow connections delete 'pg_source4' || true
 airflow connections delete 'pg_dwh-en' || true
+airflow connections delete 'pg_dwh-ru' || true
 
 airflow connections add 'pg_source1' \
     --conn-type 'postgres' \
