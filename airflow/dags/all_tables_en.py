@@ -14,11 +14,6 @@ EXCLUDE_TABLES = {
     ("public", "pg_stat_statements"),
     ("public", "pg_stat_statements_info"),
 }
-FORBIDDEN_FUNCS = ["pg_stat_statements", "pg_stat_statements_info", "_("]
-
-
-def is_safe_view(view_def: str) -> bool:
-    return not any(fn in view_def for fn in FORBIDDEN_FUNCS)
 
 
 def get_all_objects(conn_id: str):
@@ -105,14 +100,28 @@ def copy_table(source_conn: str, target_conn: str, schema: str, name: str):
             os.remove(tmp_path)
 
 
+def ensure_placeholder_function(dwh: PostgresHook):
+    # Прямой CREATE OR REPLACE FUNCTION для заглушки _
+    dwh.run("""
+        CREATE OR REPLACE FUNCTION public._(text)
+        RETURNS text
+        LANGUAGE sql
+        IMMUTABLE
+        AS $$
+            SELECT $1;
+        $$;
+    """)
+
+
 def copy_view(source_conn: str, target_conn: str, schema: str, name: str):
     dwh = PostgresHook(postgres_conn_id=target_conn)
+    
+    # Создаём заглушку функции один раз
+    ensure_placeholder_function(dwh)
+    
     view_def = get_view_definition(source_conn, schema, name)
     if not view_def:
         print(f"⚠ Не удалось получить SQL для {schema}.{name}")
-        return
-    if not is_safe_view(view_def):
-        print(f"⏭ Пропускаем {schema}.{name} (неподдерживаемые функции)")
         return
     dwh.run(f'DROP VIEW IF EXISTS "{schema}"."{name}" CASCADE;')
     dwh.run(f'CREATE VIEW "{schema}"."{name}" AS {view_def};')
