@@ -173,6 +173,14 @@ def etl_copy_everything_safe():
         hook.run(VIEW_SQL_CASH_FLOW_P_AND_L_UAE_EN)
         print("✅ View cash_flow_p_and_l_uae_en создана")
     
+    @task
+    def create_index_cashflow(target_conn: str):
+        hook = PostgresHook(postgres_conn_id=target_conn)
+        hook.run("""
+        CREATE INDEX IF NOT EXISTS idx_cashflow_club_date
+            ON models.cash_flow_p_and_l_uae_en (id_club, payment_time_local);
+        """)
+        print("✅ Индекс создан")
 
 
     # Копируем данные все данные из БД Main + Shop
@@ -181,6 +189,7 @@ def etl_copy_everything_safe():
 
 # ----------------------------------------------------------------------------------------------------------
     [copy1, copy2] >> create_view_cash_flow_p_and_l_uae_en("pg_dwh-en") # Cоздаём view Cash Flow (P&L) UAE EN
+    [copy1, copy2] >> create_view_cash_flow_p_and_l_uae_en("pg_dwh-en") >> create_index_cashflow("pg_dwh-en") # индексация для view Cash Flow (P&L) UAE EN
 # ----------------------------------------------------------------------------------------------------------
 
 dag = etl_copy_everything_safe()
