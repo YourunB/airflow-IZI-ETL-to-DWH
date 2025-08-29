@@ -133,6 +133,15 @@ def copy_view(source_conn: str, target_conn: str, schema: str, name: str):
     print(f"✅ VIEW {schema}.{name} создана")
 
 
+def load_sql(filename: str) -> str:
+    path = os.path.join(os.path.dirname(__file__), "sql", filename)
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+# ----------------------------------------------------------------------------------------------------------
+VIEW_SQL_CASH_FLOW_P_AND_L_UAE_EN = load_sql("cash_flow_p_and_l_uae_en.sql")
+#-----------------------------------------------------------------------------------------------------------
+
 @dag(
     dag_id="etl_copy_everything_safe",
     start_date=datetime(2024, 1, 1),
@@ -156,9 +165,22 @@ def etl_copy_everything_safe():
         for schema, name, kind in objects:
             if kind == "v" and schema not in EXCLUDE_SCHEMAS and (schema, name) not in EXCLUDE_TABLES:
                 copy_view(source_conn, target_conn, schema, name)
+    
+    @task
+    def create_view_cash_flow_p_and_l_uae_en(target_conn: str):
+        hook = PostgresHook(postgres_conn_id=target_conn)
+        hook.run('CREATE SCHEMA IF NOT EXISTS models;')
+        hook.run(VIEW_SQL_CASH_FLOW_P_AND_L_UAE_EN)
+        print("✅ View cash_flow_p_and_l_uae_en создана")
+    
 
-    copy_all_from_source("pg_source1", "pg_dwh-en")
-    copy_all_from_source("pg_source2", "pg_dwh-en")
 
+    # Копируем данные все данные из БД Main + Shop
+    copy1 = copy_all_from_source("pg_source1", "pg_dwh-en")
+    copy2 = copy_all_from_source("pg_source2", "pg_dwh-en")
+
+# ----------------------------------------------------------------------------------------------------------
+    [copy1, copy2] >> create_view_cash_flow_p_and_l_uae_en("pg_dwh-en") # Cоздаём view Cash Flow (P&L) UAE EN
+# ----------------------------------------------------------------------------------------------------------
 
 dag = etl_copy_everything_safe()
