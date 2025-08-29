@@ -3,6 +3,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from pendulum import datetime
 import os
 import tempfile
+from contextlib import closing
 
 EXCLUDE_SCHEMAS = {"tiger", "topology"}
 EXCLUDE_TABLES = {
@@ -72,36 +73,42 @@ def safe_type(pg_type: str) -> str:
 def copy_table(source_conn: str, target_conn: str, schema: str, name: str):
     src = PostgresHook(postgres_conn_id=source_conn)
     dwh = PostgresHook(postgres_conn_id=target_conn)
+
     dwh.run(f'CREATE SCHEMA IF NOT EXISTS "{schema}";')
 
     os.makedirs("/tmp/airflow_copy", exist_ok=True)
-    tmpfile = tempfile.NamedTemporaryFile(delete=False, dir="/tmp/airflow_copy")
-    tmp_path = tmpfile.name
-    tmpfile.close()
+    with tempfile.NamedTemporaryFile(delete=False, dir="/tmp/airflow_copy") as tmpfile:
+        tmp_path = tmpfile.name
 
     try:
-        with src.get_conn() as conn_src, open(tmp_path, "w", encoding="utf-8") as f:
-            with conn_src.cursor() as cur_src:
+        # выгрузка из источника
+        with closing(src.get_conn()) as conn_src, open(tmp_path, "w", encoding="utf-8") as f:
+            with closing(conn_src.cursor()) as cur_src:
+                cur_src.execute("SET statement_timeout = '30min';")  # защита от зависания
                 cur_src.copy_expert(f'COPY "{schema}"."{name}" TO STDOUT WITH CSV', f)
+            conn_src.commit()
 
+        # создаем таблицу в целевой БД
         cols = get_table_columns(source_conn, schema, name)
         cols_def = ", ".join([f'"{c}" {safe_type(t)}' for c, t in cols])
         dwh.run(f'DROP TABLE IF EXISTS "{schema}"."{name}" CASCADE;')
         dwh.run(f'CREATE TABLE "{schema}"."{name}" ({cols_def});')
 
-        with dwh.get_conn() as conn_dwh, open(tmp_path, "r", encoding="utf-8") as f:
-            with conn_dwh.cursor() as cur_dwh:
+        # загружаем данные в целевую БД
+        with closing(dwh.get_conn()) as conn_dwh, open(tmp_path, "r", encoding="utf-8") as f:
+            with closing(conn_dwh.cursor()) as cur_dwh:
+                cur_dwh.execute("SET statement_timeout = '30min';")
                 cur_dwh.copy_expert(f'COPY "{schema}"."{name}" FROM STDIN WITH CSV', f)
             conn_dwh.commit()
 
         print(f"✅ {schema}.{name} скопирована")
+
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
 
 def ensure_placeholder_function(dwh: PostgresHook):
-    # Прямой CREATE OR REPLACE FUNCTION для заглушки _
     dwh.run("""
         CREATE OR REPLACE FUNCTION public._(text)
         RETURNS text
@@ -115,10 +122,8 @@ def ensure_placeholder_function(dwh: PostgresHook):
 
 def copy_view(source_conn: str, target_conn: str, schema: str, name: str):
     dwh = PostgresHook(postgres_conn_id=target_conn)
-    
-    # Создаём заглушку функции один раз
     ensure_placeholder_function(dwh)
-    
+
     view_def = get_view_definition(source_conn, schema, name)
     if not view_def:
         print(f"⚠ Не удалось получить SQL для {schema}.{name}")
@@ -134,7 +139,6 @@ def copy_view(source_conn: str, target_conn: str, schema: str, name: str):
     schedule="@hourly",
     catchup=False,
     max_active_runs=1,
-    max_active_tasks=1,
     tags=["etl", "postgres", "replication", "full_copy"],
 )
 def etl_copy_everything_safe_ru():
@@ -143,12 +147,12 @@ def etl_copy_everything_safe_ru():
     def copy_all_from_source(source_conn: str, target_conn: str):
         objects = get_all_objects(source_conn)
 
-        # Сначала таблицы
+        # сначала таблицы
         for schema, name, kind in objects:
             if kind in ("r", "m") and schema not in EXCLUDE_SCHEMAS and (schema, name) not in EXCLUDE_TABLES:
                 copy_table(source_conn, target_conn, schema, name)
 
-        # Потом VIEW
+        # потом VIEW
         for schema, name, kind in objects:
             if kind == "v" and schema not in EXCLUDE_SCHEMAS and (schema, name) not in EXCLUDE_TABLES:
                 copy_view(source_conn, target_conn, schema, name)

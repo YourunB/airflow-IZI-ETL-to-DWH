@@ -70,13 +70,13 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      #- AIRFLOW__CORE__EXECUTOR=LocalExecutor - несколько задач выполняет сразу, на слабом железе, с большим DAG будет зависание
-      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      #- AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=120
-      - AIRFLOW__CORE__PARALLELISM=2
-      - AIRFLOW__CORE__DAG_CONCURRENCY=1
-      - AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG=1
+      - AIRFLOW__CORE__PARALLELISM=4
+      - AIRFLOW__CORE__DAG_CONCURRENCY=2
+      - AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG=2
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./init-data/dwh-en.sql:/docker-entrypoint-initdb.d/dwh-en.sql
