@@ -1,719 +1,719 @@
 DROP MATERIALIZED VIEW IF EXISTS models.cash_flow_p_and_l_uae_en;
   CREATE MATERIALIZED VIEW models.cash_flow_p_and_l_uae_en AS
     WITH
-    source AS (
-      SELECT
-        bu.id_club,
-        --bu.id_user,
-        p.id_balance_user,
-        bu.id_balance AS id_type_balance,
-        p.date AS payment_time,
-        p.id,
-        pt.direct,
-        p.id_payment_type,
-        pt.method AS id_grp_payment_type,
-        pt.profit,
-        p.amount,
-        p.id_reservation_terminal,
-        p.id_subscription_user,
-        p.id_reservation_shop,
-        --p.id_user_init,
-        p.id_parent,
-        pt.id_parent AS id_payment_type_parent,
-        p.date + (c.time_zone * INTERVAL '1 second') AS payment_time_local,
-        CASE
-          WHEN (
-            p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
-            OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
-            OR p.id_payment_type IN (17, 20, 98, 62, 185)
-          ) --Пополнение баланса
-          AND pt.profit = 1
-          AND pt.method = 1 THEN p.amount
-          ELSE NULL
-        END AS "Cash",
-        CASE
-          WHEN (
-            p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
-            OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
-            OR p.id_payment_type IN (17, 20, 98, 62, 185)
-          ) --Пополнение баланса
-          AND pt.profit = 1
-          AND pt.method = 2 THEN p.amount
-          ELSE NULL
-        END AS "POS",
-        CASE
-          WHEN (
-            p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
-            OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
-            OR p.id_payment_type IN (17, 20, 98, 62, 185)
-          ) --Пополнение баланса
-          AND pt.profit = 1
-          AND pt.method = 3 THEN p.amount
-          ELSE NULL
-        END AS "Online (APP)",
-        CASE
-          WHEN p.id_payment_type IN (166, 167)
-          AND pt.profit = 1 THEN p.amount
-          ELSE NULL
-        END AS "Gift cards (Revenue)",
-        CASE
-          WHEN p.id_payment_type IN (169, 170)
-          AND pt.profit = 1 THEN p.amount
-          ELSE NULL
-        END AS "Event (revenue)",
-        CASE
-          WHEN p.id_payment_type IN (172, 173)
-          AND pt.profit = 1 THEN p.amount
-          ELSE NULL
-        END AS "Other (revenue)",
-        CASE
-          WHEN p.id_payment_type IN (103, 104)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Staff salaries (expense)",
-        CASE
-          WHEN p.id_payment_type IN (106, 107)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Manager salaries (expense)",
-        CASE
-          WHEN p.id_payment_type IN (100, 101)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Utilities (expense)",
-        CASE
-          WHEN p.id_payment_type IN (115, 116)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Internet (expense)",
-        CASE
-          WHEN p.id_payment_type IN (109, 110)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Team bonuses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (112, 113)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Marketing and advertising (expense)",
-        CASE
-          WHEN p.id_payment_type IN (118, 119)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Bar expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (121, 122)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Cleaning (expense)",
-        CASE
-          WHEN p.id_payment_type IN (124, 125)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "CRM and digital payments (expense)",
-        CASE
-          WHEN p.id_payment_type IN (127, 128)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Banking services (expense)",
-        CASE
-          WHEN p.id_payment_type IN (130, 131)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Accounting services (expense)",
-        CASE
-          WHEN p.id_payment_type IN (133, 134)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Equipment (expense)",
-        CASE
-          WHEN p.id_payment_type IN (136, 137)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Repair (expense)",
-        CASE
-          WHEN p.id_payment_type IN (139, 140)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Household expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (142, 143)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Tournament prize pool (expense)",
-        CASE
-          WHEN p.id_payment_type IN (145, 146)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Transportation expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (148, 149)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Rent (expense)",
-        CASE
-          WHEN p.id_payment_type IN (151, 152)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Legal expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (154, 155)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Other expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (158, 159)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Miscellaneous expenses (expense)",
-        CASE
-          WHEN p.id_payment_type IN (160, 161)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "VAT (expense)",
-        CASE
-          WHEN p.id_payment_type IN (163, 164)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Taxes and fees (expense)",
-        CASE
-          WHEN p.id_payment_type IN (169, 170)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Event payments in cash (expense)",
-        CASE
-          WHEN p.id_payment_type IN (172, 173)
-          AND pt.profit = 0 THEN p.amount
-          ELSE NULL
-        END AS "Payments for other income (expense)"
-      FROM
-        billing.payment p
-        JOIN billing.payment_type pt ON p.id_payment_type = pt.id
-        LEFT JOIN billing.balance_user bu ON p.id_balance_user = bu.id
-        LEFT JOIN billing.balance b ON bu.id_balance = b.id
-        LEFT JOIN cntrl.club AS c ON c.id = bu.id_club
-      WHERE
-        pt.state = 1
-        AND bu.id_balance = 1
-    )
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Cash' AS "Метрика",
-    "Cash"::double precision AS "Значение",
-    1.2 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Cash" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'POS' AS "Метрика",
-    "POS"::double precision AS "Значение",
-    1.3 AS "POS"
-  FROM
-    source
-  WHERE
-    "POS" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Online (APP)' AS "Метрика",
-    "Online (APP)"::double precision AS "Значение",
-    1.4 AS "Online (APP)"
-  FROM
-    source
-  WHERE
-    "Online (APP)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Gift cards (Revenue)' AS "Метрика",
-    "Gift cards (Revenue)"::double precision AS "Значение",
-    1.51 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Gift cards (Revenue)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Event (revenue)' AS "Метрика",
-    "Event (revenue)"::double precision AS "Значение",
-    1.52 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Event (revenue)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Other (revenue)' AS "Метрика",
-    "Other (revenue)"::double precision AS "Значение",
-    1.53 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Other (revenue)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Other revenue' AS "Метрика",
-    COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) AS "Значение",
-    1.5 AS "Порядок"
-  FROM
-    source
-  WHERE
-    COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) != 0
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Total revenue' AS "Метрика",
-    COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) AS "Значение",
-    1.1 AS "Порядок"
-  FROM
-    source
-  WHERE
-    COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) != 0
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Team bonuses (expense)' AS "Метрика",
-    "Team bonuses (expense)"::double precision AS "Значение",
-    2.15 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Team bonuses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Manager salaries (expense)' AS "Метрика",
-    "Manager salaries (expense)"::double precision AS "Значение",
-    2.12 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Manager salaries (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Staff salaries (expense)' AS "Метрика",
-    "Staff salaries (expense)"::double precision AS "Значение",
-    2.11 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Staff salaries (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Internet (expense)' AS "Метрика",
-    "Internet (expense)"::double precision AS "Значение",
-    2.14 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Internet (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Utilities (expense)' AS "Метрика",
-    "Utilities (expense)"::double precision AS "Значение",
-    2.13 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Utilities (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Marketing and advertising (expense)' AS "Метрика",
-    "Marketing and advertising (expense)"::double precision AS "Значение",
-    2.16 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Marketing and advertising (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Bar expenses (expense)' AS "Метрика",
-    "Bar expenses (expense)"::double precision AS "Значение",
-    2.17 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Bar expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Cleaning (expense)' AS "Метрика",
-    "Cleaning (expense)"::double precision AS "Значение",
-    2.18 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Cleaning (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'CRM and digital payments (expense)' AS "Метрика",
-    "CRM and digital payments (expense)"::double precision AS "Значение",
-    2.19 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "CRM and digital payments (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Banking services (expense)' AS "Метрика",
-    "Banking services (expense)"::double precision AS "Значение",
-    2.191 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Banking services (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Accounting services (expense)' AS "Метрика",
-    "Accounting services (expense)"::double precision AS "Значение",
-    2.192 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Accounting services (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Equipment (expense)' AS "Метрика",
-    "Equipment (expense)"::double precision AS "Значение",
-    2.193 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Equipment (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Repair (expense)' AS "Метрика",
-    "Repair (expense)"::double precision AS "Значение",
-    2.194 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Repair (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Household expenses (expense)' AS "Метрика",
-    "Household expenses (expense)"::double precision AS "Значение",
-    2.195 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Household expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Tournament prize pool (expense)' AS "Метрика",
-    "Tournament prize pool (expense)"::double precision AS "Значение",
-    2.196 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Tournament prize pool (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Transportation expenses (expense)' AS "Метрика",
-    "Transportation expenses (expense)"::double precision AS "Значение",
-    2.197 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Transportation expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Rent (expense)' AS "Метрика",
-    "Rent (expense)"::double precision AS "Значение",
-    2.198 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Rent (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Legal expenses (expense)' AS "Метрика",
-    "Legal expenses (expense)"::double precision AS "Значение",
-    2.199 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Legal expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Other expenses (expense)' AS "Метрика",
-    "Other expenses (expense)"::double precision AS "Значение",
-    2.1991 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Other expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Miscellaneous expenses (expense)' AS "Метрика",
-    "Miscellaneous expenses (expense)"::double precision AS "Значение",
-    2.1992 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Miscellaneous expenses (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'VAT (expense)' AS "Метрика",
-    "VAT (expense)"::double precision AS "Значение",
-    2.1993 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "VAT (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Taxes and fees (expense)' AS "Метрика",
-    "Taxes and fees (expense)"::double precision AS "Значение",
-    2.1994 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Taxes and fees (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Event payments in cash (expense)' AS "Метрика",
-    "Event payments in cash (expense)"::double precision AS "Значение",
-    2.1995 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Event payments in cash (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Payments for other income (expense)' AS "Метрика",
-    "Payments for other income (expense)"::double precision AS "Значение",
-    2.1996 AS "Порядок"
-  FROM
-    source
-  WHERE
-    "Payments for other income (expense)" IS NOT NULL
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Total expenses' AS "Метрика",
-    COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0) AS "Значение",
-    2.1 AS "Порядок"
-  FROM
-    source
-  WHERE
-    COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0) != 0
-  UNION ALL
-  SELECT
-    id_club,
-    --id_user,
-    payment_time,
-    payment_time_local,
-    id_payment_type,
-    id_grp_payment_type,
-    'Profit' AS "Метрика",
-    (
-      (
-        COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0)
-      ) - (
-        COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0)
+      source AS (
+        SELECT
+          bu.id_club,
+          --bu.id_user,
+          p.id_balance_user,
+          bu.id_balance AS id_type_balance,
+          p.date AS payment_time,
+          p.id,
+          pt.direct,
+          p.id_payment_type,
+          pt.method AS id_grp_payment_type,
+          pt.profit,
+          p.amount,
+          p.id_reservation_terminal,
+          p.id_subscription_user,
+          p.id_reservation_shop,
+          --p.id_user_init,
+          p.id_parent,
+          pt.id_parent AS id_payment_type_parent,
+          p.date + (c.time_zone * INTERVAL '1 second') AS payment_time_local,
+          CASE
+            WHEN (
+              p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
+              OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
+              OR p.id_payment_type IN (17, 20, 98, 62, 185)
+            ) --Пополнение баланса
+            AND pt.profit = 1
+            AND pt.method = 1 THEN p.amount
+            ELSE NULL
+          END AS "Cash",
+          CASE
+            WHEN (
+              p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
+              OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
+              OR p.id_payment_type IN (17, 20, 98, 62, 185)
+            ) --Пополнение баланса
+            AND pt.profit = 1
+            AND pt.method = 2 THEN p.amount
+            ELSE NULL
+          END AS "POS",
+          CASE
+            WHEN (
+              p.id_payment_type IN (5, 8, 23, 38, 41, 44, 65, 68, 71, 11, 47, 74) --Игровая выручка 
+              OR p.id_payment_type IN (26, 29, 32, 35) --Выручка бара
+              OR p.id_payment_type IN (17, 20, 98, 62, 185)
+            ) --Пополнение баланса
+            AND pt.profit = 1
+            AND pt.method = 3 THEN p.amount
+            ELSE NULL
+          END AS "Online (APP)",
+          CASE
+            WHEN p.id_payment_type IN (166, 167)
+            AND pt.profit = 1 THEN p.amount
+            ELSE NULL
+          END AS "Gift cards (Revenue)",
+          CASE
+            WHEN p.id_payment_type IN (169, 170)
+            AND pt.profit = 1 THEN p.amount
+            ELSE NULL
+          END AS "Event (revenue)",
+          CASE
+            WHEN p.id_payment_type IN (172, 173)
+            AND pt.profit = 1 THEN p.amount
+            ELSE NULL
+          END AS "Other (revenue)",
+          CASE
+            WHEN p.id_payment_type IN (103, 104)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Staff salaries (expense)",
+          CASE
+            WHEN p.id_payment_type IN (106, 107)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Manager salaries (expense)",
+          CASE
+            WHEN p.id_payment_type IN (100, 101)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Utilities (expense)",
+          CASE
+            WHEN p.id_payment_type IN (115, 116)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Internet (expense)",
+          CASE
+            WHEN p.id_payment_type IN (109, 110)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Team bonuses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (112, 113)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Marketing and advertising (expense)",
+          CASE
+            WHEN p.id_payment_type IN (118, 119)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Bar expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (121, 122)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Cleaning (expense)",
+          CASE
+            WHEN p.id_payment_type IN (124, 125)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "CRM and digital payments (expense)",
+          CASE
+            WHEN p.id_payment_type IN (127, 128)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Banking services (expense)",
+          CASE
+            WHEN p.id_payment_type IN (130, 131)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Accounting services (expense)",
+          CASE
+            WHEN p.id_payment_type IN (133, 134)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Equipment (expense)",
+          CASE
+            WHEN p.id_payment_type IN (136, 137)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Repair (expense)",
+          CASE
+            WHEN p.id_payment_type IN (139, 140)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Household expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (142, 143)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Tournament prize pool (expense)",
+          CASE
+            WHEN p.id_payment_type IN (145, 146)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Transportation expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (148, 149)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Rent (expense)",
+          CASE
+            WHEN p.id_payment_type IN (151, 152)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Legal expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (154, 155)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Other expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (158, 159)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Miscellaneous expenses (expense)",
+          CASE
+            WHEN p.id_payment_type IN (160, 161)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "VAT (expense)",
+          CASE
+            WHEN p.id_payment_type IN (163, 164)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Taxes and fees (expense)",
+          CASE
+            WHEN p.id_payment_type IN (169, 170)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Event payments in cash (expense)",
+          CASE
+            WHEN p.id_payment_type IN (172, 173)
+            AND pt.profit = 0 THEN p.amount
+            ELSE NULL
+          END AS "Payments for other income (expense)"
+        FROM
+          billing.payment p
+          JOIN billing.payment_type pt ON p.id_payment_type = pt.id
+          LEFT JOIN billing.balance_user bu ON p.id_balance_user = bu.id
+          LEFT JOIN billing.balance b ON bu.id_balance = b.id
+          LEFT JOIN cntrl.club AS c ON c.id = bu.id_club
+        WHERE
+          pt.state = 1
+          AND bu.id_balance = 1
       )
-    ) AS "Значение",
-    3.1 AS "Порядок"
-  FROM
-    source
-  WHERE
-    (
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Cash' AS "Метрика",
+      "Cash"::double precision AS "Значение",
+      1.2 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Cash" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'POS' AS "Метрика",
+      "POS"::double precision AS "Значение",
+      1.3 AS "POS"
+    FROM
+      source
+    WHERE
+      "POS" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Online (APP)' AS "Метрика",
+      "Online (APP)"::double precision AS "Значение",
+      1.4 AS "Online (APP)"
+    FROM
+      source
+    WHERE
+      "Online (APP)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Gift cards (Revenue)' AS "Метрика",
+      "Gift cards (Revenue)"::double precision AS "Значение",
+      1.51 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Gift cards (Revenue)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Event (revenue)' AS "Метрика",
+      "Event (revenue)"::double precision AS "Значение",
+      1.52 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Event (revenue)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Other (revenue)' AS "Метрика",
+      "Other (revenue)"::double precision AS "Значение",
+      1.53 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Other (revenue)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Other revenue' AS "Метрика",
+      COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) AS "Значение",
+      1.5 AS "Порядок"
+    FROM
+      source
+    WHERE
+      COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) != 0
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Total revenue' AS "Метрика",
+      COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) AS "Значение",
+      1.1 AS "Порядок"
+    FROM
+      source
+    WHERE
+      COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0) != 0
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Team bonuses (expense)' AS "Метрика",
+      "Team bonuses (expense)"::double precision AS "Значение",
+      2.15 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Team bonuses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Manager salaries (expense)' AS "Метрика",
+      "Manager salaries (expense)"::double precision AS "Значение",
+      2.12 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Manager salaries (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Staff salaries (expense)' AS "Метрика",
+      "Staff salaries (expense)"::double precision AS "Значение",
+      2.11 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Staff salaries (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Internet (expense)' AS "Метрика",
+      "Internet (expense)"::double precision AS "Значение",
+      2.14 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Internet (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Utilities (expense)' AS "Метрика",
+      "Utilities (expense)"::double precision AS "Значение",
+      2.13 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Utilities (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Marketing and advertising (expense)' AS "Метрика",
+      "Marketing and advertising (expense)"::double precision AS "Значение",
+      2.16 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Marketing and advertising (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Bar expenses (expense)' AS "Метрика",
+      "Bar expenses (expense)"::double precision AS "Значение",
+      2.17 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Bar expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Cleaning (expense)' AS "Метрика",
+      "Cleaning (expense)"::double precision AS "Значение",
+      2.18 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Cleaning (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'CRM and digital payments (expense)' AS "Метрика",
+      "CRM and digital payments (expense)"::double precision AS "Значение",
+      2.19 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "CRM and digital payments (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Banking services (expense)' AS "Метрика",
+      "Banking services (expense)"::double precision AS "Значение",
+      2.191 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Banking services (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Accounting services (expense)' AS "Метрика",
+      "Accounting services (expense)"::double precision AS "Значение",
+      2.192 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Accounting services (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Equipment (expense)' AS "Метрика",
+      "Equipment (expense)"::double precision AS "Значение",
+      2.193 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Equipment (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Repair (expense)' AS "Метрика",
+      "Repair (expense)"::double precision AS "Значение",
+      2.194 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Repair (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Household expenses (expense)' AS "Метрика",
+      "Household expenses (expense)"::double precision AS "Значение",
+      2.195 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Household expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Tournament prize pool (expense)' AS "Метрика",
+      "Tournament prize pool (expense)"::double precision AS "Значение",
+      2.196 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Tournament prize pool (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Transportation expenses (expense)' AS "Метрика",
+      "Transportation expenses (expense)"::double precision AS "Значение",
+      2.197 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Transportation expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Rent (expense)' AS "Метрика",
+      "Rent (expense)"::double precision AS "Значение",
+      2.198 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Rent (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Legal expenses (expense)' AS "Метрика",
+      "Legal expenses (expense)"::double precision AS "Значение",
+      2.199 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Legal expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Other expenses (expense)' AS "Метрика",
+      "Other expenses (expense)"::double precision AS "Значение",
+      2.1991 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Other expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Miscellaneous expenses (expense)' AS "Метрика",
+      "Miscellaneous expenses (expense)"::double precision AS "Значение",
+      2.1992 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Miscellaneous expenses (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'VAT (expense)' AS "Метрика",
+      "VAT (expense)"::double precision AS "Значение",
+      2.1993 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "VAT (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Taxes and fees (expense)' AS "Метрика",
+      "Taxes and fees (expense)"::double precision AS "Значение",
+      2.1994 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Taxes and fees (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Event payments in cash (expense)' AS "Метрика",
+      "Event payments in cash (expense)"::double precision AS "Значение",
+      2.1995 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Event payments in cash (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Payments for other income (expense)' AS "Метрика",
+      "Payments for other income (expense)"::double precision AS "Значение",
+      2.1996 AS "Порядок"
+    FROM
+      source
+    WHERE
+      "Payments for other income (expense)" IS NOT NULL
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Total expenses' AS "Метрика",
+      COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0) AS "Значение",
+      2.1 AS "Порядок"
+    FROM
+      source
+    WHERE
+      COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0) != 0
+    UNION ALL
+    SELECT
+      id_club,
+      --id_user,
+      payment_time,
+      payment_time_local,
+      id_payment_type,
+      id_grp_payment_type,
+      'Profit' AS "Метрика",
       (
-        COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0)
-      ) - (
-        COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0)
-      )
-    ) != 0
+        (
+          COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0)
+        ) - (
+          COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0)
+        )
+      ) AS "Значение",
+      3.1 AS "Порядок"
+    FROM
+      source
+    WHERE
+      (
+        (
+          COALESCE("Cash"::double precision, 0) + COALESCE("POS"::double precision, 0) + COALESCE("Online (APP)"::double precision, 0) + COALESCE("Gift cards (Revenue)"::double precision, 0) + COALESCE("Event (revenue)"::double precision, 0) + COALESCE("Other (revenue)"::double precision, 0)
+        ) - (
+          COALESCE("Team bonuses (expense)"::double precision, 0) + COALESCE("Manager salaries (expense)"::double precision, 0) + COALESCE("Staff salaries (expense)"::double precision, 0) + COALESCE("Internet (expense)"::double precision, 0) + COALESCE("Utilities (expense)"::double precision, 0) + COALESCE("Marketing and advertising (expense)"::double precision, 0) + COALESCE("Bar expenses (expense)"::double precision, 0) + COALESCE("Cleaning (expense)"::double precision, 0) + COALESCE("CRM and digital payments (expense)"::double precision, 0) + COALESCE("Banking services (expense)"::double precision, 0) + COALESCE("Accounting services (expense)"::double precision, 0) + COALESCE("Equipment (expense)"::double precision, 0) + COALESCE("Repair (expense)"::double precision, 0) + COALESCE("Household expenses (expense)"::double precision, 0) + COALESCE("Tournament prize pool (expense)"::double precision, 0) + COALESCE("Transportation expenses (expense)"::double precision, 0) + COALESCE("Rent (expense)"::double precision, 0) + COALESCE("Legal expenses (expense)"::double precision, 0) + COALESCE("Other expenses (expense)"::double precision, 0) + COALESCE("Miscellaneous expenses (expense)"::double precision, 0) + COALESCE("VAT (expense)"::double precision, 0) + COALESCE("Taxes and fees (expense)"::double precision, 0) + COALESCE("Event payments in cash (expense)"::double precision, 0) + COALESCE("Payments for other income (expense)"::double precision, 0)
+        )
+      ) != 0
