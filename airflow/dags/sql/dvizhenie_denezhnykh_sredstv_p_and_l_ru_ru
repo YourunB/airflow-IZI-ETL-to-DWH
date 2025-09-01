@@ -180,7 +180,7 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
             WHEN p.id_payment_type IN (169, 170)
             AND pt.profit = 0 THEN p.amount
             ELSE NULL
-          END AS "3Оплата мероприятий наличными (расход)",
+          END AS "Оплата мероприятий наличными (расход)",
           CASE
             WHEN p.id_payment_type IN (172, 173)
             AND pt.profit = 0 THEN p.amount
@@ -294,15 +294,29 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
       id_payment_type,
       id_grp_payment_type,
       'Прочая выручка' AS "Метрика",
-      (
-        COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision
+      COALESCE(
+        "Продажи подарочных карт (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата мероприятий (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (выручка)"::double precision,
+        0
       ) AS "Значение",
       1.5 AS "Порядок"
     FROM
       source
     WHERE
-      (
-        COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision
+      COALESCE(
+        "Продажи подарочных карт (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата мероприятий (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (выручка)"::double precision,
+        0
       ) != 0
     UNION ALL
     SELECT
@@ -313,12 +327,30 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
       id_payment_type,
       id_grp_payment_type,
       'Выручка итого' AS "Метрика",
-      COALESCE("Наличка", 0)::double precision + COALESCE("Безнал", 0)::double precision + COALESCE("Онлайн (APP)", 0)::double precision + COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision AS "Значение",
+      COALESCE("Наличка"::double precision, 0) + COALESCE("Безнал"::double precision, 0) + COALESCE("Онлайн (APP)"::double precision, 0) + COALESCE(
+        "Продажи подарочных карт (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата мероприятий (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (выручка)"::double precision,
+        0
+      ) AS "Значение",
       1.1 AS "Порядок"
     FROM
       source
     WHERE
-      COALESCE("Наличка", 0)::double precision + COALESCE("Безнал", 0)::double precision + COALESCE("Онлайн (APP)", 0)::double precision + COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision != 0
+      COALESCE("Наличка"::double precision, 0) + COALESCE("Безнал"::double precision, 0) + COALESCE("Онлайн (APP)"::double precision, 0) + COALESCE(
+        "Продажи подарочных карт (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата мероприятий (выручка)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (выручка)"::double precision,
+        0
+      ) != 0
     UNION ALL
     SELECT
       id_club,
@@ -657,13 +689,13 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
       payment_time_local,
       id_payment_type,
       id_grp_payment_type,
-      '3Оплата мероприятий наличными (расход)' AS "Метрика",
-      "3Оплата мероприятий наличными (расход)"::double precision AS "Значение",
+      'Оплата мероприятий наличными (расход)' AS "Метрика",
+      "Оплата мероприятий наличными (расход)"::double precision AS "Значение",
       2.1995 AS "Порядок"
     FROM
       source
     WHERE
-      "3Оплата мероприятий наличными (расход)" IS NOT NULL
+      "Оплата мероприятий наличными (расход)" IS NOT NULL
     UNION ALL
     SELECT
       id_club,
@@ -688,12 +720,78 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
       id_payment_type,
       id_grp_payment_type,
       'Расходы итого' AS "Метрика",
-      COALESCE("Бонусы команде (расход)", 0)::double precision + COALESCE("Зарплата менеджеров (расход)", 0)::double precision + COALESCE("Зарплата сотрудников (расход)", 0)::double precision + COALESCE("Интернет (расход)", 0)::double precision + COALESCE("Коммунальные услуги (расход)", 0)::double precision + COALESCE("Маркетинг и реклама (расход)", 0)::double precision + COALESCE("Расходы бара (расход)", 0)::double precision + COALESCE("Уборка (расход)", 0)::double precision + COALESCE("Оплата CRM и цифровых платежей (расход)", 0)::double precision + COALESCE("Банковские услуги (расход)", 0)::double precision + COALESCE("Бухгалтерские услуги (расход)", 0)::double precision + COALESCE("Оборудование (расход)", 0)::double precision + COALESCE("Ремонт (расход)", 0)::double precision + COALESCE("Бытовые расходы (расход)", 0)::double precision + COALESCE("Призовой фонд турниров (расход)", 0)::double precision + COALESCE("Транспортные расходы (расход)", 0)::double precision + COALESCE("Аренда (расход)", 0)::double precision + COALESCE("Юридические расходы (расход)", 0)::double precision + COALESCE("Прочие расходы (расход)", 0)::double precision + COALESCE("Другие расходов (расход)", 0)::double precision + COALESCE("НДС (расход)", 0)::double precision + COALESCE("Налоги и сборы (расход)", 0)::double precision + COALESCE("3Оплата мероприятий наличными (расход)", 0)::double precision + COALESCE("Оплата других доходов (расход)", 0)::double precision AS "Значение",
+      COALESCE("Бонусы команде (расход)"::double precision, 0) + COALESCE(
+        "Зарплата менеджеров (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Зарплата сотрудников (расход)"::double precision,
+        0
+      ) + COALESCE("Интернет (расход)"::double precision, 0) + COALESCE(
+        "Коммунальные услуги (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Маркетинг и реклама (расход)"::double precision,
+        0
+      ) + COALESCE("Расходы бара (расход)"::double precision, 0) + COALESCE("Уборка (расход)"::double precision, 0) + COALESCE(
+        "Оплата CRM и цифровых платежей (расход)"::double precision,
+        0
+      ) + COALESCE("Банковские услуги (расход)"::double precision, 0) + COALESCE(
+        "Бухгалтерские услуги (расход)"::double precision,
+        0
+      ) + COALESCE("Оборудование (расход)"::double precision, 0) + COALESCE("Ремонт (расход)"::double precision, 0) + COALESCE("Бытовые расходы (расход)"::double precision, 0) + COALESCE(
+        "Призовой фонд турниров (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Транспортные расходы (расход)"::double precision,
+        0
+      ) + COALESCE("Аренда (расход)"::double precision, 0) + COALESCE(
+        "Юридические расходы (расход)"::double precision,
+        0
+      ) + COALESCE("Прочие расходы (расход)"::double precision, 0) + COALESCE("Другие расходов (расход)"::double precision, 0) + COALESCE("НДС (расход)"::double precision, 0) + COALESCE("Налоги и сборы (расход)"::double precision, 0) + COALESCE(
+        "Оплата мероприятий наличными (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (расход)"::double precision,
+        0
+      ) AS "Значение",
       2.1 AS "Порядок"
     FROM
       source
     WHERE
-      COALESCE("Бонусы команде (расход)", 0)::double precision + COALESCE("Зарплата менеджеров (расход)", 0)::double precision + COALESCE("Зарплата сотрудников (расход)", 0)::double precision + COALESCE("Интернет (расход)", 0)::double precision + COALESCE("Коммунальные услуги (расход)", 0)::double precision + COALESCE("Маркетинг и реклама (расход)", 0)::double precision + COALESCE("Расходы бара (расход)", 0)::double precision + COALESCE("Уборка (расход)", 0)::double precision + COALESCE("Оплата CRM и цифровых платежей (расход)", 0)::double precision + COALESCE("Банковские услуги (расход)", 0)::double precision + COALESCE("Бухгалтерские услуги (расход)", 0)::double precision + COALESCE("Оборудование (расход)", 0)::double precision + COALESCE("Ремонт (расход)", 0)::double precision + COALESCE("Бытовые расходы (расход)", 0)::double precision + COALESCE("Призовой фонд турниров (расход)", 0)::double precision + COALESCE("Транспортные расходы (расход)", 0)::double precision + COALESCE("Аренда (расход)", 0)::double precision + COALESCE("Юридические расходы (расход)", 0)::double precision + COALESCE("Прочие расходы (расход)", 0)::double precision + COALESCE("Другие расходов (расход)", 0)::double precision + COALESCE("НДС (расход)", 0)::double precision + COALESCE("Налоги и сборы (расход)", 0)::double precision + COALESCE("3Оплата мероприятий наличными (расход)", 0)::double precision + COALESCE("Оплата других доходов (расход)", 0)::double precision != 0
+      COALESCE("Бонусы команде (расход)"::double precision, 0) + COALESCE(
+        "Зарплата менеджеров (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Зарплата сотрудников (расход)"::double precision,
+        0
+      ) + COALESCE("Интернет (расход)"::double precision, 0) + COALESCE(
+        "Коммунальные услуги (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Маркетинг и реклама (расход)"::double precision,
+        0
+      ) + COALESCE("Расходы бара (расход)"::double precision, 0) + COALESCE("Уборка (расход)"::double precision, 0) + COALESCE(
+        "Оплата CRM и цифровых платежей (расход)"::double precision,
+        0
+      ) + COALESCE("Банковские услуги (расход)"::double precision, 0) + COALESCE(
+        "Бухгалтерские услуги (расход)"::double precision,
+        0
+      ) + COALESCE("Оборудование (расход)"::double precision, 0) + COALESCE("Ремонт (расход)"::double precision, 0) + COALESCE("Бытовые расходы (расход)"::double precision, 0) + COALESCE(
+        "Призовой фонд турниров (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Транспортные расходы (расход)"::double precision,
+        0
+      ) + COALESCE("Аренда (расход)"::double precision, 0) + COALESCE(
+        "Юридические расходы (расход)"::double precision,
+        0
+      ) + COALESCE("Прочие расходы (расход)"::double precision, 0) + COALESCE("Другие расходов (расход)"::double precision, 0) + COALESCE("НДС (расход)"::double precision, 0) + COALESCE("Налоги и сборы (расход)"::double precision, 0) + COALESCE(
+        "Оплата мероприятий наличными (расход)"::double precision,
+        0
+      ) + COALESCE(
+        "Оплата других доходов (расход)"::double precision,
+        0
+      ) != 0
     UNION ALL
     SELECT
       id_club,
@@ -705,9 +803,51 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
       'Прибыль' AS "Метрика",
       (
         (
-          COALESCE("Наличка", 0)::double precision + COALESCE("Безнал", 0)::double precision + COALESCE("Онлайн (APP)", 0)::double precision + COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision
+          COALESCE("Наличка"::double precision, 0) + COALESCE("Безнал"::double precision, 0) + COALESCE("Онлайн (APP)"::double precision, 0) + COALESCE(
+            "Продажи подарочных карт (выручка)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата мероприятий (выручка)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата других доходов (выручка)"::double precision,
+            0
+          )
         ) - (
-          COALESCE("Бонусы команде (расход)", 0)::double precision + COALESCE("Зарплата менеджеров (расход)", 0)::double precision + COALESCE("Зарплата сотрудников (расход)", 0)::double precision + COALESCE("Интернет (расход)", 0)::double precision + COALESCE("Коммунальные услуги (расход)", 0)::double precision + COALESCE("Маркетинг и реклама (расход)", 0)::double precision + COALESCE("Расходы бара (расход)", 0)::double precision + COALESCE("Уборка (расход)", 0)::double precision + COALESCE("Оплата CRM и цифровых платежей (расход)", 0)::double precision + COALESCE("Банковские услуги (расход)", 0)::double precision + COALESCE("Бухгалтерские услуги (расход)", 0)::double precision + COALESCE("Оборудование (расход)", 0)::double precision + COALESCE("Ремонт (расход)", 0)::double precision + COALESCE("Бытовые расходы (расход)", 0)::double precision + COALESCE("Призовой фонд турниров (расход)", 0)::double precision + COALESCE("Транспортные расходы (расход)", 0)::double precision + COALESCE("Аренда (расход)", 0)::double precision + COALESCE("Юридические расходы (расход)", 0)::double precision + COALESCE("Прочие расходы (расход)", 0)::double precision + COALESCE("Другие расходов (расход)", 0)::double precision + COALESCE("НДС (расход)", 0)::double precision + COALESCE("Налоги и сборы (расход)", 0)::double precision + COALESCE("3Оплата мероприятий наличными (расход)", 0)::double precision + COALESCE("Оплата других доходов (расход)", 0)::double precision
+          COALESCE("Бонусы команде (расход)"::double precision, 0) + COALESCE(
+            "Зарплата менеджеров (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Зарплата сотрудников (расход)"::double precision,
+            0
+          ) + COALESCE("Интернет (расход)"::double precision, 0) + COALESCE(
+            "Коммунальные услуги (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Маркетинг и реклама (расход)"::double precision,
+            0
+          ) + COALESCE("Расходы бара (расход)"::double precision, 0) + COALESCE("Уборка (расход)"::double precision, 0) + COALESCE(
+            "Оплата CRM и цифровых платежей (расход)"::double precision,
+            0
+          ) + COALESCE("Банковские услуги (расход)"::double precision, 0) + COALESCE(
+            "Бухгалтерские услуги (расход)"::double precision,
+            0
+          ) + COALESCE("Оборудование (расход)"::double precision, 0) + COALESCE("Ремонт (расход)"::double precision, 0) + COALESCE("Бытовые расходы (расход)"::double precision, 0) + COALESCE(
+            "Призовой фонд турниров (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Транспортные расходы (расход)"::double precision,
+            0
+          ) + COALESCE("Аренда (расход)"::double precision, 0) + COALESCE(
+            "Юридические расходы (расход)"::double precision,
+            0
+          ) + COALESCE("Прочие расходы (расход)"::double precision, 0) + COALESCE("Другие расходов (расход)"::double precision, 0) + COALESCE("НДС (расход)"::double precision, 0) + COALESCE("Налоги и сборы (расход)"::double precision, 0) + COALESCE(
+            "Оплата мероприятий наличными (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата других доходов (расход)"::double precision,
+            0
+          )
         )
       ) AS "Значение",
       3.1 AS "Порядок"
@@ -716,8 +856,50 @@ DROP MATERIALIZED VIEW IF EXISTS models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_
     WHERE
       (
         (
-          COALESCE("Наличка", 0)::double precision + COALESCE("Безнал", 0)::double precision + COALESCE("Онлайн (APP)", 0)::double precision + COALESCE("Продажи подарочных карт (выручка)", 0)::double precision + COALESCE("Оплата мероприятий (выручка)", 0)::double precision + COALESCE("Оплата других доходов (выручка)", 0)::double precision
+          COALESCE("Наличка"::double precision, 0) + COALESCE("Безнал"::double precision, 0) + COALESCE("Онлайн (APP)"::double precision, 0) + COALESCE(
+            "Продажи подарочных карт (выручка)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата мероприятий (выручка)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата других доходов (выручка)"::double precision,
+            0
+          )
         ) - (
-          COALESCE("Бонусы команде (расход)", 0)::double precision + COALESCE("Зарплата менеджеров (расход)", 0)::double precision + COALESCE("Зарплата сотрудников (расход)", 0)::double precision + COALESCE("Интернет (расход)", 0)::double precision + COALESCE("Коммунальные услуги (расход)", 0)::double precision + COALESCE("Маркетинг и реклама (расход)", 0)::double precision + COALESCE("Расходы бара (расход)", 0)::double precision + COALESCE("Уборка (расход)", 0)::double precision + COALESCE("Оплата CRM и цифровых платежей (расход)", 0)::double precision + COALESCE("Банковские услуги (расход)", 0)::double precision + COALESCE("Бухгалтерские услуги (расход)", 0)::double precision + COALESCE("Оборудование (расход)", 0)::double precision + COALESCE("Ремонт (расход)", 0)::double precision + COALESCE("Бытовые расходы (расход)", 0)::double precision + COALESCE("Призовой фонд турниров (расход)", 0)::double precision + COALESCE("Транспортные расходы (расход)", 0)::double precision + COALESCE("Аренда (расход)", 0)::double precision + COALESCE("Юридические расходы (расход)", 0)::double precision + COALESCE("Прочие расходы (расход)", 0)::double precision + COALESCE("Другие расходов (расход)", 0)::double precision + COALESCE("НДС (расход)", 0)::double precision + COALESCE("Налоги и сборы (расход)", 0)::double precision + COALESCE("3Оплата мероприятий наличными (расход)", 0)::double precision + COALESCE("Оплата других доходов (расход)", 0)::double precision
+          COALESCE("Бонусы команде (расход)"::double precision, 0) + COALESCE(
+            "Зарплата менеджеров (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Зарплата сотрудников (расход)"::double precision,
+            0
+          ) + COALESCE("Интернет (расход)"::double precision, 0) + COALESCE(
+            "Коммунальные услуги (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Маркетинг и реклама (расход)"::double precision,
+            0
+          ) + COALESCE("Расходы бара (расход)"::double precision, 0) + COALESCE("Уборка (расход)"::double precision, 0) + COALESCE(
+            "Оплата CRM и цифровых платежей (расход)"::double precision,
+            0
+          ) + COALESCE("Банковские услуги (расход)"::double precision, 0) + COALESCE(
+            "Бухгалтерские услуги (расход)"::double precision,
+            0
+          ) + COALESCE("Оборудование (расход)"::double precision, 0) + COALESCE("Ремонт (расход)"::double precision, 0) + COALESCE("Бытовые расходы (расход)"::double precision, 0) + COALESCE(
+            "Призовой фонд турниров (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Транспортные расходы (расход)"::double precision,
+            0
+          ) + COALESCE("Аренда (расход)"::double precision, 0) + COALESCE(
+            "Юридические расходы (расход)"::double precision,
+            0
+          ) + COALESCE("Прочие расходы (расход)"::double precision, 0) + COALESCE("Другие расходов (расход)"::double precision, 0) + COALESCE("НДС (расход)"::double precision, 0) + COALESCE("Налоги и сборы (расход)"::double precision, 0) + COALESCE(
+            "Оплата мероприятий наличными (расход)"::double precision,
+            0
+          ) + COALESCE(
+            "Оплата других доходов (расход)"::double precision,
+            0
+          )
         )
       ) != 0
