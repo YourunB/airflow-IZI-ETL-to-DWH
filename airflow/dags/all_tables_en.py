@@ -165,7 +165,9 @@ def etl_copy_everything_safe():
         for schema, name, kind in objects:
             if kind == "v" and schema not in EXCLUDE_SCHEMAS and (schema, name) not in EXCLUDE_TABLES:
                 copy_view(source_conn, target_conn, schema, name)
-    
+
+# ----------------------------------------------------------------------------------------------------------
+
     @task
     def create_view_cash_flow_p_and_l_uae_en(target_conn: str):
         hook = PostgresHook(postgres_conn_id=target_conn)
@@ -182,6 +184,7 @@ def etl_copy_everything_safe():
         """)
         print("✅ Индекс создан")
 
+# ----------------------------------------------------------------------------------------------------------
 
     # Копируем данные все данные из БД Main + Shop
     copy1 = copy_all_from_source("pg_source1", "pg_dwh-en")
