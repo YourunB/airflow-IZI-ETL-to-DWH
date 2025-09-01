@@ -145,7 +145,8 @@ VIEW_SQL_DVIZHENIE_DENEZHNYKH_SREDSTV_P_AND_L_RU_RU = load_sql("dvizhenie_denezh
 @dag(
     dag_id="etl_copy_everything_safe_ru",
     start_date=datetime(2024, 1, 1),
-    schedule="@hourly",
+    #schedule="@hourly",
+    schedule="0 */3 * * *",
     catchup=False,
     max_active_runs=1,
     tags=["etl", "postgres", "replication", "full_copy"],

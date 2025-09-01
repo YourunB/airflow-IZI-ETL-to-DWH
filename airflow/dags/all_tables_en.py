@@ -145,7 +145,8 @@ VIEW_SQL_CASH_FLOW_P_AND_L_UAE_EN = load_sql("cash_flow_p_and_l_uae_en.sql")
 @dag(
     dag_id="etl_copy_everything_safe",
     start_date=datetime(2024, 1, 1),
-    schedule="@hourly",
+    #schedule="@hourly",
+    schedule="0 */3 * * *",
     catchup=False,
     max_active_runs=1,
     tags=["etl", "postgres", "replication", "full_copy"],
