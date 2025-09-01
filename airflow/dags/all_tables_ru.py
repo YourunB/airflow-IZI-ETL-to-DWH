@@ -133,6 +133,15 @@ def copy_view(source_conn: str, target_conn: str, schema: str, name: str):
     print(f"✅ VIEW {schema}.{name} создана")
 
 
+def load_sql(filename: str) -> str:
+    path = os.path.join(os.path.dirname(__file__), "sql", filename)
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+# ----------------------------------------------------------------------------------------------------------
+VIEW_SQL_DVIZHENIE_DENEZHNYKH_SREDSTV_P_AND_L_RU_RU = load_sql("dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru.sql")
+#-----------------------------------------------------------------------------------------------------------
+
 @dag(
     dag_id="etl_copy_everything_safe_ru",
     start_date=datetime(2024, 1, 1),
@@ -156,9 +165,30 @@ def etl_copy_everything_safe_ru():
         for schema, name, kind in objects:
             if kind == "v" and schema not in EXCLUDE_SCHEMAS and (schema, name) not in EXCLUDE_TABLES:
                 copy_view(source_conn, target_conn, schema, name)
+    
+    @task
+    def create_view_dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru(target_conn: str):
+        hook = PostgresHook(postgres_conn_id=target_conn)
+        hook.run('CREATE SCHEMA IF NOT EXISTS models;')
+        hook.run(VIEW_SQL_DVIZHENIE_DENEZHNYKH_SREDSTV_P_AND_L_RU_RU)
+        print("✅ View dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru создана")
+    
+    @task
+    def create_index_dvizhenie_denezhnykh_sredstv(target_conn: str):
+        hook = PostgresHook(postgres_conn_id=target_conn)
+        hook.run("""
+        CREATE INDEX IF NOT EXISTS idx_dvizhenie_denezhnykh_sredstv_club_date
+            ON models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru (id_club, payment_time_local);
+        """)
+        print("✅ Индекс создан")
 
-    copy_all_from_source("pg_source3", "pg_dwh-ru")
-    copy_all_from_source("pg_source4", "pg_dwh-ru")
 
+    # Копируем данные все данные из БД Main + Shop
+    copy1 = copy_all_from_source("pg_source3", "pg_dwh-ru")
+    copy2 = copy_all_from_source("pg_source4", "pg_dwh-ru")
+
+# ----------------------------------------------------------------------------------------------------------
+    [copy1, copy2] >> create_view_dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru("pg_dwh-ru") >> create_index_dvizhenie_denezhnykh_sredstv("pg_dwh-ru")
+# ----------------------------------------------------------------------------------------------------------
 
 dag = etl_copy_everything_safe_ru()
