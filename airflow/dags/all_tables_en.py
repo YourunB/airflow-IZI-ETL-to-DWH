@@ -180,7 +180,8 @@ def etl_copy_everything_safe():
     def create_index_cashflow(target_conn: str):
         hook = PostgresHook(postgres_conn_id=target_conn)
         hook.run("""
-        CREATE INDEX IF NOT EXISTS idx_cashflow_club_date
+        DROP INDEX IF EXISTS idx_cashflow_club_date;
+        CREATE INDEX idx_cashflow_club_date
             ON models.cash_flow_p_and_l_uae_en (id_club, payment_time_local);
         """)
         print("✅ Индекс создан")

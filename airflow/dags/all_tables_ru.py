@@ -180,7 +180,8 @@ def etl_copy_everything_safe_ru():
     def create_index_dvizhenie_denezhnykh_sredstv(target_conn: str):
         hook = PostgresHook(postgres_conn_id=target_conn)
         hook.run("""
-        CREATE INDEX IF NOT EXISTS idx_dvizhenie_denezhnykh_sredstv_club_date
+        DROP INDEX IF EXISTS idx_dvizhenie_denezhnykh_sredstv_club_date;
+        CREATE INDEX idx_dvizhenie_denezhnykh_sredstv_club_date
             ON models.dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru (id_club, payment_time_local);
         """)
         print("✅ Индекс создан")
