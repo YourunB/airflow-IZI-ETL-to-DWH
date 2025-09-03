@@ -189,11 +189,11 @@ def etl_copy_everything_safe():
 # ----------------------------------------------------------------------------------------------------------
 
     # Копируем данные все данные из БД Main + Shop
-    copy1 = copy_all_from_source("pg_source1", "pg_dwh-en")
-    copy2 = copy_all_from_source("pg_source2", "pg_dwh-en")
+    copy1 = copy_all_from_source("pg_source1", "pg_dwh_en")
+    copy2 = copy_all_from_source("pg_source2", "pg_dwh_en")
 
 # ----------------------------------------------------------------------------------------------------------
-    [copy1, copy2] >> create_view_cash_flow_p_and_l_uae_en("pg_dwh-en") >> create_index_cashflow("pg_dwh-en") # Cоздаём view Cash Flow (P&L) UAE EN + индексация для view Cash Flow (P&L) UAE EN
+    [copy1, copy2] >> create_view_cash_flow_p_and_l_uae_en("pg_dwh_en") >> create_index_cashflow("pg_dwh_en") # Cоздаём view Cash Flow (P&L) UAE EN + индексация для view Cash Flow (P&L) UAE EN
 # ----------------------------------------------------------------------------------------------------------
 
 dag = etl_copy_everything_safe()

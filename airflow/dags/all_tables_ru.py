@@ -189,11 +189,11 @@ def etl_copy_everything_safe_ru():
 # ----------------------------------------------------------------------------------------------------------
 
     # Копируем данные все данные из БД Main + Shop
-    copy1 = copy_all_from_source("pg_source3", "pg_dwh-ru")
-    copy2 = copy_all_from_source("pg_source4", "pg_dwh-ru")
+    copy1 = copy_all_from_source("pg_source3", "pg_dwh_ru")
+    copy2 = copy_all_from_source("pg_source4", "pg_dwh_ru")
 
 # ----------------------------------------------------------------------------------------------------------
-    [copy1, copy2] >> create_view_dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru("pg_dwh-ru") >> create_index_dvizhenie_denezhnykh_sredstv("pg_dwh-ru")
+    [copy1, copy2] >> create_view_dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru("pg_dwh_ru") >> create_index_dvizhenie_denezhnykh_sredstv("pg_dwh_ru")
 # ----------------------------------------------------------------------------------------------------------
 
 dag = etl_copy_everything_safe_ru()

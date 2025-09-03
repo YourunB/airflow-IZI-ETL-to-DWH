@@ -1,5 +1,5 @@
 services:
-  postgres_source1: # тут Main UAE db
+  postgres_source1:
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user1
@@ -7,10 +7,18 @@ services:
       POSTGRES_DB: source1
     volumes:
       - ./init-data/main-en:/docker-entrypoint-initdb.d
+      - source1_data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user1 -d source1"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
-  postgres_source2: # тут Shop UAE db
+  postgres_source2:
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user2
@@ -18,10 +26,18 @@ services:
       POSTGRES_DB: source2
     volumes:
       - ./init-data/shop-en:/docker-entrypoint-initdb.d
+      - source2_data:/var/lib/postgresql/data
     ports:
       - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user2 -d source2"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
-  postgres_source3: # тут Main RU db
+  postgres_source3:
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user3
@@ -29,10 +45,18 @@ services:
       POSTGRES_DB: source3
     volumes:
       - ./init-data/main-ru:/docker-entrypoint-initdb.d
+      - source3_data:/var/lib/postgresql/data
     ports:
       - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user3 -d source3"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
-  postgres_source4: # тут Shop UAE db
+  postgres_source4:
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: user4
@@ -40,30 +64,70 @@ services:
       POSTGRES_DB: source4
     volumes:
       - ./init-data/shop-ru:/docker-entrypoint-initdb.d
+      - source4_data:/var/lib/postgresql/data
     ports:
       - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user4 -d source4"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
-  postgres_dwh-en: # тут итог UAE Main + Shop
+  postgres_dwh-en:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_USER: dwhuser-en
-      POSTGRES_PASSWORD: dwhpass-en
-      POSTGRES_DB: dwh-en
+      POSTGRES_USER: dwhuser_en
+      POSTGRES_PASSWORD: dwhpass_en
+      POSTGRES_DB: dwh_en
     volumes:
-      - ./init-data/dwh-en.sql:/docker-entrypoint-initdb.d/dwh-en.sql
+      - dwh_en_data:/var/lib/postgresql/data
     ports:
       - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dwhuser_en -d dwh_en"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
-  postgres_dwh-ru: # тут итог RU Main + Shop
+  postgres_dwh-ru:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_USER: dwhuser-ru
-      POSTGRES_PASSWORD: dwhpass-ru
-      POSTGRES_DB: dwh-ru
+      POSTGRES_USER: dwhuser_ru
+      POSTGRES_PASSWORD: dwhpass_ru
+      POSTGRES_DB: dwh_ru
     volumes:
-      - ./init-data/dwh-ru.sql:/docker-entrypoint-initdb.d/dwh-ru.sql
+      - dwh_ru_data:/var/lib/postgresql/data
     ports:
       - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dwhuser_ru -d dwh_ru"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
+
+  airflow-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - ./airflow-db-data:/var/lib/postgresql/data
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - etl_net
 
   airflow:
     build:
@@ -71,20 +135,47 @@ services:
       dockerfile: Dockerfile
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      #- AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=120
-      - AIRFLOW__CORE__PARALLELISM=4
-      - AIRFLOW__CORE__DAG_CONCURRENCY=2
-      - AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG=2
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./init-data/dwh-en.sql:/docker-entrypoint-initdb.d/dwh-en.sql
-      - ./init-data/dwh-ru.sql:/docker-entrypoint-initdb.d/dwh-ru.sql
       - ./init_airflow_connections.sh:/init_airflow_connections.sh
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      postgres_source1:
+        condition: service_healthy
+      postgres_source2:
+        condition: service_healthy
+      postgres_source3:
+        condition: service_healthy
+      postgres_source4:
+        condition: service_healthy
+      postgres_dwh-en:
+        condition: service_healthy
+      postgres_dwh-ru:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - etl_net
     command: >
-      bash -c "airflow db migrate &&
-      /init_airflow_connections.sh &&
-      exec airflow standalone"
+      bash -c "export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN='postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow' &&
+               rm -f /opt/airflow/airflow.cfg &&
+               airflow db migrate &&
+               airflow db check &&
+               /init_airflow_connections.sh &&
+               exec airflow standalone"
+
+volumes:
+  source1_data:
+  source2_data:
+  source3_data:
+  source4_data:
+  dwh_en_data:
+  dwh_ru_data:
+
+networks:
+  etl_net:
+    driver: bridge

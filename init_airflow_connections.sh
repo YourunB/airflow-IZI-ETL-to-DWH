@@ -14,8 +14,8 @@ airflow connections delete 'pg_source1' || true
 airflow connections delete 'pg_source2' || true
 airflow connections delete 'pg_source3' || true
 airflow connections delete 'pg_source4' || true
-airflow connections delete 'pg_dwh-en' || true
-airflow connections delete 'pg_dwh-ru' || true
+airflow connections delete 'pg_dwh_en' || true
+airflow connections delete 'pg_dwh_ru' || true
 
 airflow connections add 'pg_source1' \
     --conn-type 'postgres' \
@@ -49,20 +49,20 @@ airflow connections add 'pg_source4' \
     --conn-login 'user4' \
     --conn-password 'pass4'
 
-airflow connections add 'pg_dwh-en' \
+airflow connections add 'pg_dwh_en' \
     --conn-type 'postgres' \
     --conn-host 'postgres_dwh-en' \
     --conn-port '5432' \
-    --conn-schema 'dwh-en' \
-    --conn-login 'dwhuser-en' \
-    --conn-password 'dwhpass-en'
+    --conn-schema 'dwh_en' \
+    --conn-login 'dwhuser_en' \
+    --conn-password 'dwhpass_en'
 
-airflow connections add 'pg_dwh-ru' \
+airflow connections add 'pg_dwh_ru' \
     --conn-type 'postgres' \
     --conn-host 'postgres_dwh-ru' \
     --conn-port '5432' \
-    --conn-schema 'dwh-ru' \
-    --conn-login 'dwhuser-ru' \
-    --conn-password 'dwhpass-ru'
+    --conn-schema 'dwh_ru' \
+    --conn-login 'dwhuser_ru' \
+    --conn-password 'dwhpass_ru'
 
 echo "Done creating Airflow connections."
