@@ -168,7 +168,7 @@ def etl_copy_everything_safe_ru():
                 copy_view(source_conn, target_conn, schema, name)
     
 # ----------------------------------------------------------------------------------------------------------
-    
+    #таски для создания views по моделям
     @task
     def create_view_dvizhenie_denezhnykh_sredstv_p_and_l_ru_ru(target_conn: str):
         hook = PostgresHook(postgres_conn_id=target_conn)

@@ -168,7 +168,7 @@ def etl_copy_everything_safe():
                 copy_view(source_conn, target_conn, schema, name)
 
 # ----------------------------------------------------------------------------------------------------------
-
+    #таски для создания views по моделям
     @task
     def create_view_cash_flow_p_and_l_uae_en(target_conn: str):
         hook = PostgresHook(postgres_conn_id=target_conn)
